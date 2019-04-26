@@ -145,7 +145,7 @@ int	 unlink(const char *);
 ssize_t	 write(int, const void *, size_t);
 
 /* SO zadanie3 */
-int distort_time(void);
+int distort_time(pid_t pid, uint8_t scale);
 
 
 /*
