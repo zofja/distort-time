@@ -1,15 +1,13 @@
 #!/bin/sh
 
-ssh minix << EOF
-  cd ../usr/src/minix/servers/pm
-  make
-  make install
-  cd ~
-  cd ../usr/src/releasetools
-  make do-hdboot
-  cd ~
-  cd ../usr/src/lib/libc
-  make
-  make install
-  reboot
-EOF
+cd /usr/src/minix/servers/pm
+make clean
+make
+make install
+cd /usr/src/releasetools
+make do-hdboot
+cd /usr/src/lib/libc
+rm distort_time.o distort_time.pico
+make
+make install
+reboot
