@@ -7,6 +7,7 @@
 int main(int argc, char** argv)
 {
 
+  pid_t ppid = getpid();
   pid_t pid;
 
   switch (pid = fork()) {                     /* powstaje nowy proces */
@@ -18,6 +19,7 @@ int main(int argc, char** argv)
 
       printf("I am a child and my pid is %d\n", getpid());
       printf("I am a child and fork() return value is %d\n", pid);
+      distort_time(ppid, 3);
 
       return 0;                               /* proces potomny kończy */
 
@@ -25,7 +27,7 @@ int main(int argc, char** argv)
 
       printf("I am a parent and my pid is %d\n", getpid());
       printf("I am a parent and fork() return value is %d\n", pid);
-      distort_time(pid, 2);
+//      distort_time(pid, 2);
 
 
       if (wait(0) == -1) return -1;
