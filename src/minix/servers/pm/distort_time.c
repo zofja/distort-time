@@ -3,72 +3,93 @@
 #include <minix/com.h>
 #include <signal.h>
 #include <sys/time.h>
-#include <stdbool.h>
 #include "mproc.h"
 
-
-bool is_descendant(pid_t pid) {
+int is_descendant(pid_t pid) {
 
   pid_t my_pid = mp->mp_pid; // get id of curr proc
 
   struct mproc *lpid = find_proc(pid); // ptr to mproc of pid from parameter
 
-  while(lpid->mp_pid != 1) {
+  while (lpid->mp_pid != 1) {
 
-    printf("my pid %d   lpid %d\n", my_pid, lpid->mp_pid);
     if (lpid->mp_pid == my_pid) {
-      return true;
+      return 0;
     }
 
     lpid = &mproc[lpid->mp_parent];
   }
-  return false;
+  return 1;
 }
 
-bool is_ancestor(pid_t pid) {
+int is_ancestor(pid_t pid) {
 
   pid_t my_pid = mp->mp_pid; // get id of curr proc
 
   struct mproc *lpid = find_proc(my_pid); // ptr to mproc of curr proc
 
-  while(lpid->mp_pid != 1) {
+  while (lpid->mp_pid != 1) {
 
-    printf("lpid %d   pid %d\n", lpid->mp_pid, pid);
     if (lpid->mp_pid == pid) {
-      return true;
+      return OK;
     }
 
     lpid = &mproc[lpid->mp_parent];
   }
-  return false;
+  return EPERM;
+}
+
+
+void print_debug(pid_t pid) {
+
+  printf("*** DEBUG ***\n");
+
+  printf("distortion: %d\n", distortion[pid]);
+  printf("scale: %d\n", scale[pid]);
+  printf("set_base_time: %d\n", set_base_time[pid]);
+  printf("base_time: %llu\n", base_time[pid]);
+
+  printf("*** END DEBUG ***\n");
+
 }
 
 int do_distort_time() {
 
-  /*
-   * if pid is DESCENDANT of current process: time *= scale
-   * if pid is ANCESTOR of current process: time /= scale
-   */
-
-  // TODO przypadki szczególne
-
   pid_t pid = m_in.m_distort_time.pid;
-  uint8_t scale = m_in.m_distort_time.scale;
+  uint8_t
+  scl = m_in.m_distort_time.scale;
 
-  if (is_descendant(pid)) {
-
-    // przyspiesz
-    printf("is descendant\n");
-  } else if (is_ancestor(pid)) {
-
-    // spowolnij
-    printf ("is ancestor\n");
-  } else {
-
-    printf("is neither\n");
-    return EPERM;
+  if (find_proc(pid) == NULL) {
+    return (EINVAL);
   }
 
-  printf("Hello from PM %d %d\n", pid, scale);
+  if (mp->mp_pid == find_proc(pid)->mp_pid) {
+    return (EPERM);
+  }
+
+//  which_pid[mp->mp_pid] = pid;
+
+  if (is_descendant(pid) == OK) {
+
+    printf("descendant\n");
+
+    distortion[pid] = 1;
+    scale[pid] = scl;
+//    print_debug(pid);
+
+  } else if (is_ancestor(pid) == OK) {
+
+    printf("ancestor\n");
+
+    distortion[pid] = 2;
+    scale[pid] = scl;
+//    print_debug(pid);
+
+  } else {
+//    which_pid[mp->mp_pid] = 0;
+
+    return (EPERM);
+  }
+
   return 0;
 }

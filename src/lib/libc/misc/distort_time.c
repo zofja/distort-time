@@ -22,5 +22,8 @@ int distort_time(pid_t pid, uint8_t scale) {
   m.m_distort_time.pid = pid;
   m.m_distort_time.scale = scale;
 
-  return (_syscall(pm_pt, PM_DISTORT_TIME, &m));
+
+  if (_syscall(pm_pt, PM_DISTORT_TIME, &m) < 0)
+    return errno;
+  return 0;
 }

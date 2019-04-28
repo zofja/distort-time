@@ -9,6 +9,13 @@ EXTERN struct mproc *mp;	/* ptr to 'mproc' slot of current process */
 EXTERN int procs_in_use;	/* how many processes are marked as IN_USE */
 EXTERN char monitor_params[MULTIBOOT_PARAM_BUF_SIZE];
 
+/* SO zadanie3 */
+EXTERN int which_pid[NR_PROCS_DISTORT];
+EXTERN int distortion[NR_PROCS_DISTORT];
+EXTERN uint8_t scale[NR_PROCS_DISTORT];
+EXTERN int set_base_time[NR_PROCS_DISTORT];
+EXTERN uint64_t base_time[NR_PROCS_DISTORT];
+
 /* Misc.c */
 extern struct utsname uts_val;	/* uname info */
 
