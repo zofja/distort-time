@@ -66,7 +66,7 @@ int do_getres() {
  *===========================================================================*/
 int do_settime() {
   int s;
-  struct mproc *proc;
+  struct mproc *p;
 
   if (mp->mp_effuid != SUPER_USER) {
     return (EPERM);
@@ -75,10 +75,8 @@ int do_settime() {
   switch (m_in.m_lc_pm_time.clk_id) {
     case CLOCK_REALTIME:
 
-      for (proc = &mproc[0]; proc < &mproc[NR_PROCS]; proc++) {
-        if (set_base_time[proc->mp_pid] == 1) {
-          set_base_time[proc->mp_pid] = 0;
-        }
+      for (p = &mproc[0]; p < &mproc[NR_PROCS]; p++) {
+        p->set_base = 0;
       }
 
       s = sys_settime(m_in.m_lc_pm_time.now, m_in.m_lc_pm_time.clk_id,
@@ -99,50 +97,44 @@ int do_time() {
  * rotates at a constant rate and that such things as leap seconds do not 
  * exist.
  */
-  clock_t
-  ticks, realtime;
+  clock_t ticks, realtime;
   time_t boottime;
   int s;
 
   if ((s = getuptime(&ticks, &realtime, &boottime)) != OK)
     panic("do_time couldn't get uptime: %d", s);
 
-  pid_t pid = mp->mp_pid;
+  uint64_t scl = mp->scale;
+  uint64_t base = mp->base;
+  uint64_t scaled_hz = system_hz * scl;
+  uint64_t dif = (uint64_t)realtime - base;
 
-  if (distortion[pid] != 0 && set_base_time[pid] != 0) {
+  if (mp->distorted != 0 && mp->set_base == 1) {
 
-    uint64_t dif = (uint64_t)realtime - base_time[pid];
-    uint64_t scl = scale[pid];
-    uint64_t base = base_time[pid];
-    uint64_t scaled_hz = system_hz * scl;
-
-    if (distortion[pid] == 1 || scl == 0) { // mnożenie lub 0
-
-      printf("multiply or 0\n");
-      printf("base %llu  scale %llu\n", base, scl);
-
-      mp->mp_reply.m_pm_lc_time.sec = boottime + ((base_time[pid] + dif * scl) / system_hz);
-      mp->mp_reply.m_pm_lc_time.nsec =
-              (uint64_t)(((base_time[pid] + dif * scl) % system_hz) * 1000000000ULL / system_hz);
-
-    } else { // dzielenie
-
-      printf("division\n");
-      printf("base %llu  scale %llu\n", base, scl);
+    if (mp->distorted == 2 && scl != 0) { // Division
 
       mp->mp_reply.m_pm_lc_time.sec = boottime + ((dif + base * scl) / (scaled_hz));
       mp->mp_reply.m_pm_lc_time.nsec =
               (uint64_t)(((dif + base * scl) % (scaled_hz)) * 1000000000ULL / (scaled_hz));
 
+    } else { // Multiply or 0
+
+      mp->mp_reply.m_pm_lc_time.sec = boottime + ((base + dif * scl) / system_hz);
+      mp->mp_reply.m_pm_lc_time.nsec =
+              (uint64_t)(((base + dif * scl) % system_hz) * 1000000000ULL / system_hz);
+
     }
   } else {
 
-    set_base_time[pid] = 1;
-    base_time[pid] = realtime;
+    if (mp->distorted != 0) {
+      mp->set_base = 1;
+      mp->base = realtime;
+    }
 
     mp->mp_reply.m_pm_lc_time.sec = boottime + (realtime / system_hz);
     mp->mp_reply.m_pm_lc_time.nsec =
-            (uint32_t)((realtime % system_hz) * 1000000000ULL / system_hz);
+            (uint32_t) ((realtime % system_hz) * 1000000000ULL / system_hz);
+
   }
 
   return (OK);

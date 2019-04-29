@@ -70,6 +70,13 @@ EXTERN struct mproc {
   char mp_name[PROC_NAME_LEN];	/* process name */
 
   int mp_magic;			/* sanity check, MP_MAGIC */
+
+  /* SO zadanie3 */
+  int distorted;
+  int scale;
+  int set_base;
+  int base;
+
 } mproc[NR_PROCS];
 
 /* Flag values */
